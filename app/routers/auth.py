@@ -91,6 +91,12 @@ async def login_submit(
 
 @router.get("/logout", name="logout")
 async def logout():
-    response = RedirectResponse(url="/", status_code=status.HTTP_200_OK)
-    response.delete_cookie(key="access_token")
+    response = RedirectResponse(
+        url="/",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+    response.delete_cookie(
+        key="access_token",
+        path="/"
+    )
     return response
