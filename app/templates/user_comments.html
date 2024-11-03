@@ -1,0 +1,51 @@
+<div class="user-comments">
+    <h3>Your Comments</h3>
+
+    <div class="comments-list">
+        {% for comment in comments %}
+        <div class="comment" id="comment-{{ comment.id }}">
+            <div class="comment-content">
+                <p>{{ comment.content }}</p>
+                <div class="comment-meta">
+                    <a href="{{ url_for('movie_detail', movie_id=comment.movie_id) }}" class="movie-link">
+                        On Movie: {{ comment.movie_id }}
+                    </a>
+                    <span class="comment-date">Posted: {{ comment.timestamp }}</span>
+                </div>
+
+                {% set comment_time = comment.timestamp|to_datetime %}
+                {% if (now - comment_time).total_seconds() < 86400 %}
+                    <div class="comment-actions">
+                        <button onclick="showEditForm('{{ comment.id }}')" class="btn btn-sm btn-secondary">
+                            Edit
+                        </button>
+                        <form action="{{ url_for('delete_comment', comment_id=comment.id) }}"
+                              method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Delete this comment?')">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                    <form id="edit-form-{{ comment.id }}"
+                          action="{{ url_for('edit_comment', comment_id=comment.id) }}"
+                          method="post" class="edit-form hidden">
+                        <div class="form-group">
+                            <textarea name="content" required class="form-control">{{ comment.content }}</textarea>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                            <button type="button" onclick="hideEditForm('{{ comment.id }}')"
+                                    class="btn btn-sm btn-secondary">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <p class="no-comments">You haven't made any comments yet.</p>
+        {% endfor %}
+    </div>
+</div>

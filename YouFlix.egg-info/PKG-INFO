@@ -1,0 +1,15 @@
+Metadata-Version: 2.1
+Name: YouFlix
+Version: 0.0.1
+Summary: YouFlix is a Netflix competitor where the user can upload and download movies.
+Author-email: Chris Busse <cbusse1@my.centennialcollege.ca>
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: boto3
+Requires-Dist: pydantic
+Requires-Dist: sqlalchemy
+Requires-Dist: pymssql
+Requires-Dist: jinja2
+Requires-Dist: python-multipart

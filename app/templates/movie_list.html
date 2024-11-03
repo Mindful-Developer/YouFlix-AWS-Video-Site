@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Movie Library</h2>
+
+    {% if current_user %}
+    <div class="upload-section mb-4">
+        <h3>Upload New Movie</h3>
+        <form action="/movies/" method="post" enctype="multipart/form-data" class="upload-form">
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="genre">Genre:</label>
+                <select id="genre" name="genre" required class="form-control">
+                    <option value="">Select Genre</option>
+                    <option value="Action">Action</option>
+                    <option value="Comedy">Comedy</option>
+                    <option value="Drama">Drama</option>
+                    <option value="Science Fiction">Science Fiction</option>
+                    <option value="Horror">Horror</option>
+                    <option value="Documentary">Documentary</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="director">Director:</label>
+                <input type="text" id="director" name="director" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="release_time">Release Date:</label>
+                <input type="date" id="release_time" name="release_time" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="file">Movie File:</label>
+                <input type="file" id="file" name="file" required class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary">Upload Movie</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="filter-section mb-4">
+        <h3>Filter Movies</h3>
+        <div class="filter-controls">
+            <select id="genre-filter" onchange="filterByGenre(this.value)">
+                <option value="">All Genres</option>
+                <option value="Action">Action</option>
+                <option value="Comedy">Comedy</option>
+                <option value="Drama">Drama</option>
+                <option value="Science Fiction">Science Fiction</option>
+                <option value="Horror">Horror</option>
+                <option value="Documentary">Documentary</option>
+            </select>
+            <input type="number" id="rating-filter" min="0" max="10" step="0.5"
+                   placeholder="Minimum Rating" onchange="filterByRating(this.value)">
+        </div>
+    </div>
+
+    <div id="movie-list" class="movie-grid">
+        {% for movie in movies %}
+        <div class="movie-card">
+            <div class="movie-card-content">
+                <h3>{{ movie.title }}</h3>
+                <p><strong>Genre:</strong> {{ movie.genre }}</p>
+                <p><strong>Director:</strong> {{ movie.director }}</p>
+                <p><strong>Rating:</strong> {{ "%.1f"|format(movie.rating) }}/10</p>
+                <div class="movie-actions">
+                    <a href="/movies/{{ movie.id }}" class="btn btn-primary">View Details</a>
+                    {% if current_user and current_user.id == movie.user_id %}
+                    <button onclick="deleteMovie('{{ movie.id }}')" class="btn btn-danger">Delete</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function filterByGenre(genre) {
+    let url = '/movies/';
+    if (genre) {
+        url = `/movies/genre/${genre}`;
+    }
+    fetch(url)
+        .then(response => response.json())
+        .then(data => updateMovieList(data))
+        .catch(error => console.error('Error:', error));
+}
+
+function filterByRating(rating) {
+    fetch(`/movies/?min_rating=${rating}`)
+        .then(response => response.json())
+        .then(data => updateMovieList(data))
+        .catch(error => console.error('Error:', error));
+}
+
+function updateMovieList(movies) {
+    const movieList = document.getElementById('movie-list');
+    movieList.innerHTML = movies.map(movie => `
+        <div class="movie-card">
+            <div class="movie-card-content">
+                <h3>${movie.title}</h3>
+                <p><strong>Genre:</strong> ${movie.genre}</p>
+                <p><strong>Director:</strong> ${movie.director}</p>
+                <p><strong>Rating:</strong> ${movie.rating.toFixed(1)}/10</p>
+                <div class="movie-actions">
+                    <a href="/movies/${movie.id}" class="btn btn-primary">View Details</a>
+                    ${movie.user_id === currentUserId ?
+                        `<button onclick="deleteMovie('${movie.id}')" class="btn btn-danger">Delete</button>` :
+                        ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function deleteMovie(movieId) {
+    if (confirm('Are you sure you want to delete this movie?')) {
+        fetch(`/movies/${movieId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Failed to delete movie');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+</script>
+{% endblock %}

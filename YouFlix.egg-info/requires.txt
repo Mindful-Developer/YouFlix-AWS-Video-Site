@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+boto3
+pydantic
+sqlalchemy
+pymssql
+jinja2
+python-multipart

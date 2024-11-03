@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouFlix - {% block title %}Home{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', path='/images/favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+    <script src="https://unpkg.com/htmx.org@1.6.1"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('home') }}">
+            <img src="{{ url_for('static', path='/images/logo.png') }}" alt="YouFlix Logo" width="50" height="50">
+        </a>
+        <a href="{{ url_for('home') }}">
+            <h1><span id="h-span">You</span>Flix</h1>
+        </a>
+        <nav>
+            <a href="{{ url_for('home') }}">Home</a>
+            {% if current_user %}
+                <a href="{{ url_for('browse_movies') }}">Movies</a>
+                <a href="{{ url_for('profile') }}">Profile</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Chris Busse: 301252282 and Abdoullahi Isse: 301250600</p>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

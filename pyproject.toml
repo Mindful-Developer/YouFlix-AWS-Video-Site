@@ -1,0 +1,23 @@
+[project]
+name = "YouFlix"
+version = "0.0.1"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "boto3",
+    "pydantic",
+    "sqlalchemy",
+    "pymssql",
+    "jinja2",
+    "python-multipart",
+    "python-jose[cryptography]",
+    "passlib",
+    "pytest"
+]
+requires-python = ">=3.10"
+authors = [
+    {name = "Chris Busse", email = "cbusse1@my.centennialcollege.ca"},
+]
+description = "YouFlix is a Netflix competitor where the user can upload and download movies."
+readme = "README.md"
+license = {file = "LICENSE"}

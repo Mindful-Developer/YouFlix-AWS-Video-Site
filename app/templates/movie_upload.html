@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Upload New Movie</h2>
+    <form action="{{ url_for('upload_movie_submit') }}" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" required class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label for="genre">Genre:</label>
+            <select id="genre" name="genre" required class="form-control">
+                <option value="">Select Genre</option>
+                <option value="Action">Action</option>
+                <option value="Comedy">Comedy</option>
+                <option value="Drama">Drama</option>
+                <option value="Horror">Horror</option>
+                <option value="Science Fiction">Science Fiction</option>
+                <option value="Documentary">Documentary</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="director">Director:</label>
+            <input type="text" id="director" name="director" required class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label for="release_time">Release Date:</label>
+            <input type="date" id="release_time" name="release_time" required class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label for="file">Movie File:</label>
+            <input type="file" id="file" name="file" required class="form-control"
+                   accept="video/*">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Upload Movie</button>
+    </form>
+</div>
+{% endblock %}

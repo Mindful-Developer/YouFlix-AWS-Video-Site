@@ -1,0 +1,26 @@
+{
+  "s3": {
+    "bucket_name": "youflix-movies"
+  },
+  "dynamodb": {
+    "youflix-movies": "youflix-movies",
+    "youflix-comments": "youflix-comments"
+  },
+  "rds": {
+    "endpoint": "youflix-db.czs6cwi8meeq.us-east-1.rds.amazonaws.com",
+    "port": 1433,
+    "username": "admin"
+  },
+  "elastic_beanstalk": {
+    "application_name": "youflix",
+    "environment_name": "youflix-env",
+    "environment_id": "e-ws8wui3pzf"
+  },
+  "parameters": {
+    "DATABASE_URL": "/youflix/DATABASE_URL",
+    "AWS_S3_BUCKET": "/youflix/AWS_S3_BUCKET",
+    "DYNAMODB_TABLE": "/youflix/DYNAMODB_TABLE",
+    "SECRET_KEY": "/youflix/SECRET_KEY",
+    "AWS_REGION": "/youflix/AWS_REGION"
+  }
+}
