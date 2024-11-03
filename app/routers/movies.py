@@ -80,23 +80,58 @@ async def browse_movies(
         db: Session = Depends(get_db)
 ):
     """Browse movies with optional filters"""
-    if genre:
-        movies = aws_dynamodb.query_movies_by_genre(genre)
-    elif min_rating is not None:
-        movies = aws_dynamodb.query_movies_by_rating(min_rating)
-    else:
-        movies = aws_dynamodb.scan_movies()  # New function to get all movies
+    try:
+        # Initialize empty movies list
+        movies = []
 
-    return templates.TemplateResponse(
-        "movie_browse.html",
-        {
-            "request": request,
-            "current_user": request.state.current_user,
-            "movies": movies,
-            "selected_genre": genre,
-            "min_rating": min_rating
-        }
-    )
+        # Get movies based on filters
+        if genre and genre.strip():
+            movies = aws_dynamodb.query_movies_by_genre(genre)
+        elif min_rating is not None:
+            movies = aws_dynamodb.query_movies_by_rating(min_rating)
+        else:
+            movies = aws_dynamodb.scan_movies()
+
+        # Validate movie data
+        validated_movies = []
+        for movie in movies:
+            if movie and isinstance(movie, dict) and movie.get('id'):
+                # Ensure all required fields have default values if missing
+                validated_movie = {
+                    'id': movie['id'],
+                    'title': movie.get('title', 'Untitled'),
+                    'genre': movie.get('genre', 'Uncategorized'),
+                    'director': movie.get('director', 'Unknown'),
+                    'rating': int(movie.get('rating', 0)),
+                    'user_id': movie.get('user_id'),
+                    'release_time': movie.get('release_time', ''),
+                    's3_key': movie.get('s3_key', '')
+                }
+                validated_movies.append(validated_movie)
+
+        return templates.TemplateResponse(
+            "movie_browse.html",
+            {
+                "request": request,
+                "current_user": request.state.current_user,
+                "movies": validated_movies,
+                "selected_genre": genre,
+                "min_rating": min_rating,
+                "error": None
+            }
+        )
+    except Exception as e:
+        return templates.TemplateResponse(
+            "movie_browse.html",
+            {
+                "request": request,
+                "current_user": request.state.current_user,
+                "movies": [],
+                "selected_genre": genre,
+                "min_rating": min_rating,
+                "error": "An error occurred while fetching movies."
+            }
+        )
 
 
 @router.get("/{movie_id}", response_class=HTMLResponse, name="movie_detail")
@@ -126,10 +161,10 @@ async def movie_detail(
 
 @router.post("/{movie_id}/rate", name="rate_movie")
 async def rate_movie(
-        request: Request,
-        movie_id: str,
-        rating: int = Form(...),
-        db: Session = Depends(get_db)
+    request: Request,
+    movie_id: str,
+    rating: int = Form(..., ge=1, le=10),
+    db: Session = Depends(get_db)
 ):
     """Handle movie rating submission"""
     if not request.state.current_user:

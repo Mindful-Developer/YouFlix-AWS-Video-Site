@@ -46,10 +46,29 @@ def update_movie(movie_id, updated_data):
 
 
 def query_movies_by_rating(min_rating):
-    response = ratings_table.scan(
-        FilterExpression=Key("rating").gte(min_rating)
-    )
-    return response.get("Items", [])
+    """Query movies with rating >= min_rating"""
+    try:
+        logger.info(f"Querying movies with rating >= {min_rating}")
+        response = movies_table.scan(
+            FilterExpression='rating >= :min_rating',
+            ExpressionAttributeValues={':min_rating': min_rating}
+        )
+        movies = response.get('Items', [])
+
+        # Handle pagination if there are more items
+        while 'LastEvaluatedKey' in response:
+            response = movies_table.scan(
+                FilterExpression='rating >= :min_rating',
+                ExpressionAttributeValues={':min_rating': min_rating},
+                ExclusiveStartKey=response['LastEvaluatedKey']
+            )
+            movies.extend(response.get('Items', []))
+
+        logger.info(f"Found {len(movies)} movies with rating >= {min_rating}")
+        return movies
+    except Exception as e:
+        logger.error(f"Error querying movies by rating: {e}")
+        raise
 
 
 def query_movies_by_genre(genre):
@@ -156,7 +175,7 @@ def get_user_rating(movie_id: str, user_id: int) -> float:
         raise
 
 
-def add_rating(movie_id: str, user_id: int, rating: float) -> None:
+def add_rating(movie_id: str, user_id: int, rating: int) -> None:
     """Add or update a user's rating for a movie"""
     try:
         # Add rating to ratings table
@@ -164,20 +183,28 @@ def add_rating(movie_id: str, user_id: int, rating: float) -> None:
             Item={
                 'movie_id': movie_id,
                 'user_id': user_id,
-                'rating': Decimal(str(rating)),
+                'rating': rating,
                 'timestamp': datetime.utcnow().isoformat()
             }
         )
 
-        # Update average rating in movies table
-        ratings_stats = get_movie_ratings(movie_id)
+        # Get all ratings for the movie
+        response = ratings_table.query(
+            KeyConditionExpression=Key('movie_id').eq(movie_id)
+        )
+        ratings = [int(item['rating']) for item in response.get('Items', [])]
+
+        # Calculate new average rating
+        avg_rating = int(sum(ratings) / len(ratings)) if ratings else 0
+
+        # Update movie's average rating
         movies_table.update_item(
             Key={'id': movie_id},
             UpdateExpression='SET rating = :r',
-            ExpressionAttributeValues={
-                ':r': Decimal(str(ratings_stats['average']))
-            }
+            ExpressionAttributeValues={':r': avg_rating}
         )
+
+        logger.info(f"Added rating {rating} for movie {movie_id} by user {user_id}")
     except Exception as e:
         logger.error(f"Error adding rating for movie {movie_id}: {e}")
         raise
