@@ -65,38 +65,6 @@ def put_comment(comment_data):
     comments_table.put_item(Item=comment_data)
 
 
-def get_comment(comment_id):
-    response = comments_table.get_item(Key={"id": comment_id})
-    return response.get("Item")
-
-
-def update_comment(comment_id, updated_data):
-    update_expression = "SET " + ", ".join(f"{k}=:{k}" for k in updated_data.keys())
-    expression_attribute_values = {f":{k}": v for k, v in updated_data.items()}
-    comments_table.update_item(
-        Key={"id": comment_id},
-        UpdateExpression=update_expression,
-        ExpressionAttributeValues=expression_attribute_values,
-    )
-
-
-def get_comments_by_movie(movie_id):
-    response = comments_table.query(
-        IndexName="MovieIndex",
-        KeyConditionExpression=Key("movie_id").eq(movie_id)
-    )
-    return response.get("Items", [])
-
-
-def add_rating(movie_id, user_id, rating):
-    ratings_table.put_item(Item={
-        "movie_id": movie_id,
-        "user_id": user_id,
-        "rating": rating
-    })
-    update_movie_rating(movie_id)
-
-
 def update_movie_rating(movie_id):
     response = ratings_table.query(
         KeyConditionExpression=Key("movie_id").eq(movie_id)
