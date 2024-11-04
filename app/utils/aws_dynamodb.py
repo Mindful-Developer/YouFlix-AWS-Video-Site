@@ -1,7 +1,7 @@
 import boto3
 from boto3.dynamodb.conditions import Key
-from datetime import datetime
-from decimal import Decimal
+from datetime import datetime, timezone
+from fastapi import HTTPException, status
 from typing import List, Dict, Any
 
 from config import DYNAMODB_TABLE
@@ -213,16 +213,25 @@ def add_rating(movie_id: str, user_id: int, rating: int) -> None:
 def add_comment(movie_id: str, user_id: int, content: str) -> Dict[str, Any]:
     """Add a comment to a movie"""
     try:
+        # Ensure user_id is an integer
+        user_id = int(str(user_id))
+
         comment_data = {
-            'id': f"{movie_id}_{datetime.utcnow().timestamp()}",
+            'id': f"{movie_id}_{datetime.now(timezone.utc).timestamp()}",
             'movie_id': movie_id,
             'user_id': user_id,
             'content': content,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
 
         comments_table.put_item(Item=comment_data)
         return comment_data
+    except (ValueError, TypeError) as e:
+        logger.error(f"Error converting user_id to integer: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format"
+        )
     except Exception as e:
         logger.error(f"Error adding comment for movie {movie_id}: {e}")
         raise
@@ -231,20 +240,31 @@ def add_comment(movie_id: str, user_id: int, content: str) -> Dict[str, Any]:
 def update_comment(comment_id: str, content: str) -> Dict[str, Any]:
     """Update a comment"""
     try:
-        comments_table.update_item(
+        update_response = comments_table.update_item(
             Key={'id': comment_id},
             UpdateExpression='SET content = :c, updated_at = :u',
             ExpressionAttributeValues={
                 ':c': content,
-                ':u': datetime.utcnow().isoformat()
+                ':u': datetime.now(timezone.utc).isoformat()
             },
             ReturnValues='ALL_NEW'
         )
-        return get_comment(comment_id)
+
+        # Get the updated comment
+        updated_comment = get_comment(comment_id)
+        if not updated_comment:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve updated comment"
+            )
+
+        return updated_comment
     except Exception as e:
         logger.error(f"Error updating comment {comment_id}: {e}")
-        raise
-
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 def delete_comment(comment_id: str) -> None:
     """Delete a comment"""
@@ -259,7 +279,36 @@ def get_comment(comment_id: str) -> Dict[str, Any]:
     """Get a specific comment"""
     try:
         response = comments_table.get_item(Key={'id': comment_id})
-        return response.get('Item')
+        comment = response.get('Item')
+
+        if comment:
+            try:
+                # Ensure timestamp is timezone-aware
+                if 'timestamp' in comment:
+                    timestamp = comment['timestamp'].replace('Z', '+00:00')
+                    timestamp_dt = datetime.fromisoformat(timestamp)
+                    if timestamp_dt.tzinfo is None:
+                        timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
+                    comment['timestamp'] = timestamp_dt
+
+                # Ensure user_id is a proper integer
+                if 'user_id' in comment:
+                    try:
+                        comment['user_id'] = int(float(str(comment['user_id']).strip()))
+                    except (ValueError, TypeError):
+                        logger.error(f"Error converting user_id in comment {comment_id}")
+                        raise HTTPException(
+                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Error processing user information"
+                        )
+
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error processing comment data: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Error processing comment data"
+                )
+        return comment
     except Exception as e:
         logger.error(f"Error getting comment {comment_id}: {e}")
         raise
@@ -273,7 +322,20 @@ def get_comments_by_movie(movie_id: str) -> List[Dict[str, Any]]:
             KeyConditionExpression=Key('movie_id').eq(movie_id),
             ScanIndexForward=False  # Sort by timestamp descending
         )
-        return response.get('Items', [])
+        comments = response.get('Items', [])
+
+        # Process each comment
+        for comment in comments:
+            # Ensure user_id is an integer
+            comment['user_id'] = int(comment['user_id'])
+            # Ensure timestamp is timezone-aware
+            if 'timestamp' in comment:
+                timestamp = datetime.fromisoformat(comment['timestamp'].replace('Z', '+00:00'))
+                if timestamp.tzinfo is None:
+                    timestamp = timestamp.replace(tzinfo=timezone.utc)
+                comment['timestamp'] = timestamp
+
+        return comments
     except Exception as e:
         logger.error(f"Error getting comments for movie {movie_id}: {e}")
         raise
@@ -284,10 +346,23 @@ def get_comments_by_user(user_id: int) -> List[Dict[str, Any]]:
     try:
         response = comments_table.query(
             IndexName='UserIndex',
-            KeyConditionExpression=Key('user_id').eq(user_id),
+            KeyConditionExpression=Key('user_id').eq(int(user_id)),  # Explicitly convert to int
             ScanIndexForward=False  # Sort by timestamp descending
         )
-        return response.get('Items', [])
+        comments = response.get('Items', [])
+
+        # Process each comment
+        for comment in comments:
+            # Ensure user_id is an integer
+            comment['user_id'] = int(comment['user_id'])
+            # Ensure timestamp is timezone-aware
+            if 'timestamp' in comment:
+                timestamp = datetime.fromisoformat(comment['timestamp'].replace('Z', '+00:00'))
+                if timestamp.tzinfo is None:
+                    timestamp = timestamp.replace(tzinfo=timezone.utc)
+                comment['timestamp'] = timestamp
+
+        return comments
     except Exception as e:
         logger.error(f"Error getting comments for user {user_id}: {e}")
         raise

@@ -21,11 +21,11 @@
                     <span class="comment-date">on {{ comment.timestamp }}</span>
                 </div>
 
-                {% if current_user and current_user.id == comment.user_id %}
+                {% if current_user and comment.user_id|int == current_user.id|int %}
                     {% set comment_time = comment.timestamp|to_datetime %}
                     {% if (now - comment_time).total_seconds() < 86400 %}
                         <div class="comment-actions">
-                            <button onclick="showEditForm('{{ comment.id }}')" class="btn btn-sm btn-secondary">
+                            <button onclick="toggleEditForm('{{ comment.id }}')" class="btn btn-sm btn-secondary">
                                 Edit
                             </button>
                             <form action="{{ url_for('delete_comment', comment_id=comment.id) }}"
@@ -44,7 +44,7 @@
                             </div>
                             <div class="button-group">
                                 <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                                <button type="button" onclick="hideEditForm('{{ comment.id }}')"
+                                <button type="button" onclick="toggleEditForm('{{ comment.id }}')"
                                         class="btn btn-sm btn-secondary">
                                     Cancel
                                 </button>
@@ -59,3 +59,42 @@
         {% endfor %}
     </div>
 </div>
+
+<script>
+function toggleEditForm(commentId) {
+    const contentDiv = document.querySelector(`#comment-${commentId} .comment-content`);
+    const editForm = document.querySelector(`#edit-form-${commentId}`);
+
+    if (editForm.classList.contains('hidden')) {
+        contentDiv.style.display = 'none';
+        editForm.classList.remove('hidden');
+    } else {
+        contentDiv.style.display = 'block';
+        editForm.classList.add('hidden');
+    }
+}
+</script>
+
+<style>
+.hidden {
+    display: none;
+}
+
+.edit-form {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.edit-form textarea {
+    width: 100%;
+    min-height: 80px;
+    margin-bottom: 0.5rem;
+}
+
+.button-group {
+    display: flex;
+    gap: 0.5rem;
+}
+</style>

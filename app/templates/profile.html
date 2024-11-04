@@ -79,13 +79,11 @@
 {% block extra_scripts %}
 <script>
 function showEditForm(commentId) {
-    document.querySelector(`#comment-${commentId} .comment-content`).classList.add('hidden');
-    document.querySelector(`#edit-form-${commentId}`).classList.remove('hidden');
+    document.getElementById(`edit-form-${commentId}`).style.display = 'block';
 }
 
 function hideEditForm(commentId) {
-    document.querySelector(`#comment-${commentId} .comment-content`).classList.remove('hidden');
-    document.querySelector(`#edit-form-${commentId}`).classList.add('hidden');
+    document.getElementById(`edit-form-${commentId}`).style.display = 'none';
 }
 
 function deleteMovie(movieId) {

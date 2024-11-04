@@ -1,12 +1,17 @@
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
+import logging
 
 from dependencies import get_db
 from utils import aws_dynamodb
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 router = APIRouter(
     prefix="/comments",
@@ -34,7 +39,7 @@ async def add_comment(
         # Add comment to DynamoDB
         aws_dynamodb.add_comment(
             movie_id=movie_id,
-            user_id=request.state.current_user.id,
+            user_id=int(request.state.current_user.id),  # Explicitly convert to int
             content=content
         )
 
@@ -83,7 +88,7 @@ async def get_user_comments(
 ):
     """Get all comments by a user"""
     try:
-        comments = aws_dynamodb.get_comments_by_user(user_id)
+        comments = aws_dynamodb.get_comments_by_user(int(user_id))  # Explicitly convert to int
         return templates.TemplateResponse(
             "partials/user_comments.html",
             {
@@ -98,6 +103,28 @@ async def get_user_comments(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta, timezone
+import logging
+
+from dependencies import get_db
+from utils import aws_dynamodb
+
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+router = APIRouter(
+    prefix="/comments",
+    tags=["comments"],
+)
+
+templates = Jinja2Templates(directory="templates")
 
 
 @router.post("/{comment_id}/edit", name="edit_comment")
@@ -116,36 +143,84 @@ async def edit_comment(
 
     try:
         # Get the comment
+        logger.debug(f"Getting comment with ID: {comment_id}")
         comment = aws_dynamodb.get_comment(comment_id)
         if not comment:
             raise HTTPException(status_code=404, detail="Comment not found")
 
-        # Check if user is authorized to edit
-        if comment['user_id'] != request.state.current_user.id:
+        logger.debug(f"Retrieved comment: {comment}")
+
+        # Log raw values before conversion
+        logger.debug(f"Raw comment user_id: {comment.get('user_id')} (type: {type(comment.get('user_id'))})")
+        logger.debug(
+            f"Raw current user id: {request.state.current_user.id} (type: {type(request.state.current_user.id)})")
+
+        # Get user IDs with string conversion first
+        comment_user_id = str(comment.get('user_id', '')).strip()
+        current_user_id = str(request.state.current_user.id).strip()
+
+        logger.debug(f"Comparing user IDs: {comment_user_id} == {current_user_id}")
+
+        # Check if user is authorized to edit using string comparison
+        if comment_user_id != current_user_id:
             raise HTTPException(
                 status_code=403,
                 detail="Not authorized to edit this comment"
             )
 
-        # Check if comment is within 24-hour edit window
-        comment_time = datetime.fromisoformat(comment['timestamp'].replace('Z', '+00:00'))
-        time_diff = datetime.now(timezone.utc) - comment_time
-        if time_diff > timedelta(hours=24):
+        # Handle timestamp comparison
+        try:
+            logger.debug(f"Raw timestamp: {comment['timestamp']}")
+            # Check if timestamp is already a datetime object
+            if isinstance(comment['timestamp'], datetime):
+                comment_time = comment['timestamp']
+            else:
+                # If it's a string, parse it
+                comment_time = datetime.fromisoformat(str(comment['timestamp']).replace('Z', '+00:00'))
+
+            # Ensure timezone awareness
+            if comment_time.tzinfo is None:
+                comment_time = comment_time.replace(tzinfo=timezone.utc)
+
+            current_time = datetime.now(timezone.utc)
+            logger.debug(f"Time difference: {current_time - comment_time}")
+
+            if (current_time - comment_time) > timedelta(hours=24):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot modify comment after 24 hours"
+                )
+        except ValueError as e:
+            logger.error(f"Timestamp error: {e}")
             raise HTTPException(
-                status_code=400,
-                detail="Cannot modify comment after 24 hours"
+                status_code=500,
+                detail=f"Error processing timestamp: {str(e)}"
             )
 
         # Update the comment
+        logger.debug(f"Updating comment with new content: {content}")
         aws_dynamodb.update_comment(comment_id, content)
 
+        # Determine return URL
+        referrer = request.headers.get("referer", "")
+        logger.debug(f"Referrer URL: {referrer}")
+
+        if "/profile" in referrer:
+            return_url = "/profile"
+        else:
+            return_url = f"/movies/{comment['movie_id']}"
+
+        logger.debug(f"Redirecting to: {return_url}")
+
         return RedirectResponse(
-            url=f"/movies/{comment['movie_id']}",
+            url=return_url,
             status_code=status.HTTP_302_FOUND
         )
     except HTTPException as he:
+        logger.error(f"HTTP Exception: {he}")
         raise he
     except Exception as e:
+        logger.error(f"Unexpected error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -171,8 +246,12 @@ async def delete_comment(
         if not comment:
             raise HTTPException(status_code=404, detail="Comment not found")
 
+        # Ensure both user IDs are integers for comparison
+        comment_user_id = int(comment['user_id'])
+        current_user_id = int(request.state.current_user.id)
+
         # Check if user is authorized to delete
-        if comment['user_id'] != request.state.current_user.id:
+        if comment_user_id != current_user_id:
             raise HTTPException(
                 status_code=403,
                 detail="Not authorized to delete this comment"
