@@ -1,5 +1,5 @@
 import os
-from utils.parameter_store import get_parameter
+from app.utils.parameter_store import get_parameter
 
 
 DATABASE_URL = get_parameter("/youflix/DATABASE_URL") + "/YouFlix"

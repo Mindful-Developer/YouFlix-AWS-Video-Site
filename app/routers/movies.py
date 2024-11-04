@@ -5,15 +5,15 @@ from sqlalchemy.orm import Session
 from uuid import uuid4
 from typing import Optional
 
-from dependencies import get_db
-from utils import aws_s3, aws_dynamodb
+from app.dependencies import get_db
+from app.utils import aws_s3, aws_dynamodb
 
 router = APIRouter(
     prefix="/movies",
     tags=["movies"],
 )
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/upload", response_class=HTMLResponse, name="upload_movie")
@@ -275,7 +275,7 @@ async def delete_movie(
         aws_s3.delete_movie(movie['s3_key'])
         aws_dynamodb.delete_movie(movie_id)
         return RedirectResponse(
-            url="/movies/list",
+            url="/movies/browse",
             status_code=status.HTTP_302_FOUND
         )
     except Exception as e:

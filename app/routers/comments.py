@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 import logging
 
-from dependencies import get_db
-from utils import aws_dynamodb
+from app.dependencies import get_db
+from app.utils import aws_dynamodb
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +18,7 @@ router = APIRouter(
     tags=["comments"],
 )
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 
 
 @router.post("/add", name="add_comment")

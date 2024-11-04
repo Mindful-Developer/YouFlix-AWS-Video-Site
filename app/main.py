@@ -9,10 +9,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import logging
 
-from database import SessionLocal
-from dependencies import get_db, get_current_user, get_current_user_from_cookie
-from routers import auth, movies, comments
-from utils import aws_dynamodb
+from app.database import SessionLocal
+from app.dependencies import get_db, get_current_user, get_current_user_from_cookie
+from app.routers import auth, movies, comments
+from app.utils import aws_dynamodb
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,12 +44,12 @@ app.add_middleware(UserMiddleware)
 
 # Mount static files
 try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
 except Exception as e:
     logger.error(f"Failed to mount static files: {e}")
 
 # Initialize templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 
 
 # Add custom filters to Jinja2 environment

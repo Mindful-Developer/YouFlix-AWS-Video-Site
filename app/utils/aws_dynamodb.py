@@ -3,9 +3,9 @@ from boto3.dynamodb.conditions import Key
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from typing import List, Dict, Any
-
-from config import DYNAMODB_TABLE
 import logging
+
+from app.config import DYNAMODB_TABLE
 
 
 # Configure logging
@@ -31,6 +31,7 @@ def get_movie(movie_id):
 
 
 def delete_movie(movie_id):
+    print(movie_id)
     movies_table.delete_item(Key={"id": movie_id})
 
 

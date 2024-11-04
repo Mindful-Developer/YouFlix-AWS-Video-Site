@@ -1,7 +1,6 @@
 import boto3
 import os
 import time
-import yaml
 import shutil
 import argparse
 from typing import Dict

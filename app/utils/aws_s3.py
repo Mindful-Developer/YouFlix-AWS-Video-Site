@@ -1,7 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 
-from config import AWS_S3_BUCKET
+from app.config import AWS_S3_BUCKET
 
 
 s3_client = boto3.client("s3")
@@ -16,6 +16,7 @@ async def upload_movie(file_obj, object_name):
 
 def delete_movie(object_name):
     try:
+        print(object_name, AWS_S3_BUCKET)
         s3_client.delete_object(Bucket=AWS_S3_BUCKET, Key=object_name)
     except ClientError as e:
         raise e
