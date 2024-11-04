@@ -105,28 +105,6 @@ async def get_user_comments(
         )
 
 
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, timezone
-import logging
-
-from dependencies import get_db
-from utils import aws_dynamodb
-
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-router = APIRouter(
-    prefix="/comments",
-    tags=["comments"],
-)
-
-templates = Jinja2Templates(directory="templates")
-
-
 @router.post("/{comment_id}/edit", name="edit_comment")
 async def edit_comment(
         request: Request,
