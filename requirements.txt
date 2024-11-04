@@ -4,7 +4,7 @@ cryptography
 fastapi
 h11
 Jinja2
-
+gunicorn
 passlib
 psycopg2-binary
 pydantic

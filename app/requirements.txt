@@ -2,6 +2,7 @@ bcrypt
 boto3
 cryptography
 fastapi
+gunicorn
 h11
 Jinja2
 passlib
