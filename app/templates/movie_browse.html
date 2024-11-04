@@ -29,8 +29,9 @@
 
             <div class="form-group">
                 <label for="min_rating">Minimum Rating:</label>
-                <input type="number" id="min_rating" name="min_rating" min="1" max="10" step="1"
-                       class="form-control" value="{{ min_rating if min_rating is not none }}">
+                <input type="number" id="min_rating" name="min_rating" min="0" max="10" step="1"
+                       class="form-control" value="{{ min_rating if min_rating is not none else '' }}"
+                       placeholder="All ratings">
             </div>
 
             <button type="submit" class="btn btn-primary">Apply Filters</button>

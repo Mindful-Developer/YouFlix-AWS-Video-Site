@@ -76,7 +76,7 @@ async def upload_movie(
 async def browse_movies(
         request: Request,
         genre: Optional[str] = None,
-        min_rating: Optional[int] = None,
+        min_rating: Optional[str] = None,  # Change to str to handle empty strings
         db: Session = Depends(get_db)
 ):
     """Browse movies with optional filters"""
@@ -87,10 +87,14 @@ async def browse_movies(
         # Get movies based on filters
         if genre and genre.strip():
             movies = aws_dynamodb.query_movies_by_genre(genre)
-        elif min_rating is not None:
-            movies = aws_dynamodb.query_movies_by_rating(min_rating)
+        elif min_rating and min_rating.strip():  # Check if min_rating is not empty
+            try:
+                rating_value = int(min_rating)
+                movies = aws_dynamodb.query_movies_by_rating(rating_value)
+            except ValueError:
+                movies = aws_dynamodb.scan_movies()  # Invalid rating value, show all movies
         else:
-            movies = aws_dynamodb.scan_movies()
+            movies = aws_dynamodb.scan_movies()  # Get all movies if no filters
 
         # Validate movie data
         validated_movies = []
@@ -116,7 +120,7 @@ async def browse_movies(
                 "current_user": request.state.current_user,
                 "movies": validated_movies,
                 "selected_genre": genre,
-                "min_rating": min_rating,
+                "min_rating": min_rating if min_rating and min_rating.strip() else None,
                 "error": None
             }
         )
@@ -128,7 +132,7 @@ async def browse_movies(
                 "current_user": request.state.current_user,
                 "movies": [],
                 "selected_genre": genre,
-                "min_rating": min_rating,
+                "min_rating": min_rating if min_rating and min_rating.strip() else None,
                 "error": "An error occurred while fetching movies."
             }
         )

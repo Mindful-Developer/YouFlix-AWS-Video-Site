@@ -12,9 +12,6 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
 
-    movies = relationship('Movie', back_populates='user')
-    comments = relationship('Comment', back_populates='user')
-
 
 def get_user(db, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
